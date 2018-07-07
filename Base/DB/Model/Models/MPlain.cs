@@ -30,12 +30,20 @@ namespace Base.DB.Model.Models
 
         public MPlain(string table, string keyField = "ID")
         {
+            if (string.IsNullOrEmpty(table))
+            {
+                var errMsg = "Error: Table name not specified.";
+
+                LogHelper.WriteLogError(errMsg);
+                throw new Exception(errMsg);
+            }
+
             TableName = table;
             KeyField = keyField;
         }
 
         #region Select
-        
+
         /// <summary>
         /// Set if distinct.
         /// </summary>
@@ -122,20 +130,6 @@ namespace Base.DB.Model.Models
         }
 
         /// <summary>
-        /// Add field on ORDER BY clause.
-        /// </summary>
-        /// <param name="field"></param>
-        /// <param name="asc">If ASC</param>
-        /// <returns></returns>
-        public MPlain OrderBy(string field, bool asc = true)
-        {
-            if (string.IsNullOrEmpty(field)) return this;
-
-            OrderFields.Add(field + (asc ? "" : " DESC"));
-            return this;
-        }
-
-        /// <summary>
         /// Add field on GROUP BY clause.
         /// </summary>
         /// <param name="field"></param>
@@ -161,6 +155,20 @@ namespace Base.DB.Model.Models
             HavingConditions.Add(condSql);
             SqlParams.AddRange(condition.FetchParams());
 
+            return this;
+        }
+
+        /// <summary>
+        /// Add field on ORDER BY clause.
+        /// </summary>
+        /// <param name="field"></param>
+        /// <param name="asc">If ASC</param>
+        /// <returns></returns>
+        public MPlain OrderBy(string field, bool asc = true)
+        {
+            if (string.IsNullOrEmpty(field)) return this;
+
+            OrderFields.Add(field + (asc ? "" : " DESC"));
             return this;
         }
 
@@ -221,7 +229,7 @@ namespace Base.DB.Model.Models
             {
                 // the prefix
                 var prefix = string.Format("SELECT {0} FROM(\n",
-                    SelectFieldsClause(SelectStyle.FieldNameOrAlias));
+                    SelectFieldsClause(SelectFieldStyle.FieldNameOrAlias));
 
                 // the postfix
                 var postfix = string.Format("\n) AS T\nWHERE ROW_NUMBER BETWEEN {0} AND {1}",
@@ -267,7 +275,7 @@ namespace Base.DB.Model.Models
                     rowNumberOrderBy = string.Join(", ", GroupFields);
                 else
                     rowNumberOrderBy = KeyField;
-                
+
                 result.Append(string.Format("ROW_NUMBER() OVER(ORDER BY {0}) AS ROW_NUMBER, ", rowNumberOrderBy));
             }
             result.Append(SelectFieldsClause());
@@ -284,7 +292,7 @@ namespace Base.DB.Model.Models
         ///     <para>SelectStyle.FieldNameAndAlias:  Use original field names, additionally, append " AS " + [alias] if specified.</para>
         /// </param>
         /// <returns></returns>
-        private string SelectFieldsClause(SelectStyle style = SelectStyle.FieldNameAndAlias)
+        private string SelectFieldsClause(SelectFieldStyle style = SelectFieldStyle.FieldNameAndAlias)
         {
             var result = new StringBuilder();
 
@@ -303,15 +311,15 @@ namespace Base.DB.Model.Models
 
                 switch (style)
                 {
-                    case SelectStyle.FieldNameAndAlias:
+                    case SelectFieldStyle.FieldNameAndAlias:
                         result.Append(alias == ""
                             ? field
                             : string.Format("{0} AS {1}", field, alias));
                         break;
-                    case SelectStyle.FieldNameOrAlias:
+                    case SelectFieldStyle.FieldNameOrAlias:
                         result.Append(alias == "" ? field : alias);
                         break;
-                    case SelectStyle.FieldNameOnly:
+                    case SelectFieldStyle.FieldNameOnly:
                         result.Append(field);
                         break;
                 }
@@ -323,15 +331,15 @@ namespace Base.DB.Model.Models
         /// <summary>
         /// Select data with the configured SQL, and reset all configurations.
         /// </summary>
-        /// <param name="clearConfigs">Clear all configurations after excution.</param>
+        /// <param name="initAfter">Clear all configurations after excution.</param>
         /// <returns></returns>
-        public virtual DataTable Select(bool clearConfigs = false)
+        public DataTable Select(bool initAfter = false)
         {
             // Fetch select SQL.
             var sql = FetchSql();
 
             //  Clear all configurations.
-            if (clearConfigs)
+            if (initAfter)
             {
                 IsDistinct = false;
                 TableAlias = "";
@@ -353,11 +361,44 @@ namespace Base.DB.Model.Models
             return Conn.ExecuteDataTable(sql, SqlParams);
         }
 
+        /// <summary>
+        /// Set value of specified parameter.
+        /// </summary>
+        /// <param name="paramName">Parameter name</param>
+        /// <param name="newValue">New value</param>
+        /// <returns></returns>
+        public MPlain SetParam(string paramName, object newValue)
+        {
+            var paramIndex = SqlParams.FindIndex(m => m.ParameterName == paramName);
+            if (paramIndex < 0) return this;
+
+            SqlParams[paramIndex].Value = (newValue == null ? DBNull.Value : newValue); // ?
+
+            return this;
+        }
+
+        /// <summary>
+        /// Set value of specified parameter.
+        /// </summary>
+        /// <param name="paramName">Parameter name</param>
+        /// <returns></returns>
+        public object GetParam(string paramName)
+        {
+            var paramIndex = SqlParams.FindIndex(m => m.ParameterName == paramName);
+            if (paramIndex < 0) return null;
+
+            return SqlParams[paramIndex].Value == DBNull.Value ? null : SqlParams[paramIndex].Value; // ?
+        }
+
         #endregion
 
         #region Insert/Update
-        
-        private readonly Hashtable _cache = new Hashtable();
+
+        /// <summary>
+        /// Variable "_cache" stores temp data to be inserted or updated,
+        /// in the format of [k = field name, v = field value].
+        /// </summary>
+        protected readonly Hashtable _cache = new Hashtable();
 
         /// <summary>
         /// Set value in "TmpData".
@@ -367,6 +408,10 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         public virtual MPlain Data(string field, object value)
         {
+            // Empty field is not valid
+            if (string.IsNullOrEmpty(field)) return this;
+
+            // Add or Modify field value
             if (_cache.Contains(field))
                 _cache[field] = value;
             else
@@ -383,42 +428,69 @@ namespace Base.DB.Model.Models
         public virtual int Save(object key = null)
         {
             var sql = (key == null ? CacheInsertSql() : CacheUpdateSql(key));
+            var sqlParams = CacheParams();
 
-            _cache.Clear();
+            _cache.Clear(); // clear data after store.
 
-            return Conn.ExecuteNonQuery(sql);
+            return Conn.ExecuteNonQuery(sql, SqlParams);
         }
 
-        private string CacheInsertSql()
+        /// <summary>
+        /// Fetch parameters by cached data
+        /// </summary>
+        /// <returns></returns>
+        private List<SqlParameter> CacheParams()
         {
-            var fields = "";
-            var values = "";
+            var result = new List<SqlParameter>();
+
             foreach (var k in _cache.Keys)
             {
-                if (fields == "")
-                {
-                    fields = k.ToString();
-                    values = _cache[k].ToString();
-                }
-                else
-                {
-                    fields += ", " + k;
-                    values += ", " + _cache[k];
-                }
+                var v = (_cache[k] == null ? DBNull.Value : _cache[k]);
+                result.Add(new SqlParameter("@p_" + k, v));
             }
 
-            return string.Format("INSERT INTO {0} ({1}) VALUES({2})", TableName, fields, values);
+            return result;
         }
 
-        private string CacheUpdateSql(object key)
+        /// <summary>
+        /// Fetch INSER SQL by cached data.
+        /// </summary>
+        /// <returns></returns>
+        private string CacheInsertSql()
         {
-            var expr = "";
+            var fields = string.Empty;
+            var pNames = string.Empty;
+
             foreach (var k in _cache.Keys)
             {
-                if (expr == "")
-                    expr = string.Format("{0} = {1}", k, _cache[k]);
-                else
-                    expr += string.Format(", {0} = {1}", k, _cache[k]);
+                if (!string.IsNullOrEmpty(fields)) // seperator
+                {
+                    fields += ", ";
+                    pNames += ", ";
+                }
+
+                fields = k.ToString();
+                pNames = "@p_" + k;
+            }
+
+            return string.Format("INSERT INTO {0} ({1}) VALUES({2})", TableName, fields, pNames);
+        }
+
+        /// <summary>
+        /// Ftech UPDATE SQL by cached data.
+        /// </summary>
+        /// <param name="key">To which key field equals.</param>
+        /// <returns></returns>
+        private string CacheUpdateSql(object key)
+        {
+            var expr = string.Empty;
+
+            foreach (var k in _cache.Keys)
+            {
+                if (!string.IsNullOrEmpty(expr)) // seperator
+                    expr += ", ";
+
+                expr += string.Format("{0} = {1}", k, "@p_" + k);
             }
 
             return string.Format("UPDATE {0} SET {1} WHERE {2} = {3}", TableName, expr, KeyField, key);
@@ -436,7 +508,7 @@ namespace Base.DB.Model.Models
         public int Delete(Cond cond)
         {
             var sql = string.Format("DELETE FROM {0} WHERE {1}", TableName, cond.FetchSql());
-            return Conn.ExecuteNonQuery(sql);
+            return Conn.ExecuteNonQuery(sql, cond.FetchParams());
         }
 
         /// <summary>
@@ -463,12 +535,73 @@ namespace Base.DB.Model.Models
 
         #endregion
 
+        /// <summary>
+        /// Static method, to generate a plain table.
+        /// </summary>
+        /// <param name="tableName">Table to be created.</param>
+        /// <param name="fieldDescriptions">Descriptions to all fields.</param>
+        /// <param name="checkExists">Drop table first if already exists.</param>
+        /// <returns>If generation was successful.</returns>
+        public static bool Create(string tableName, IEnumerable<FieldDescription> fieldDescriptions, bool checkExists = true)
+        {
+            var indexFields = new List<string>();
+
+            // Drop if exists
+            if (checkExists)
+            {
+                var sqlDropIfExists = string.Format(
+                    "IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('{0}')) DROP TABLE {0};",
+                    tableName);
+                Conn.ExecuteNonQuery(sqlDropIfExists);
+            }
+
+            // Create table
+            var sqlCreateTable = string.Format("CREATE TABLE {0}(\n", tableName);
+            foreach (var description in fieldDescriptions)
+            {
+                var sbField = new StringBuilder();
+
+                // field name
+                sbField.Append(description.FieldName);
+                // field type
+                if (!string.IsNullOrEmpty(description.FieldType)) sbField.Append(" " + description.FieldType);
+                // constrains
+                if (!string.IsNullOrEmpty(description.Constraints)) sbField.Append(" " + description.Constraints);
+                // index fields
+                if (description.IfIndex) indexFields.Add(description.FieldName);
+                
+                sqlCreateTable += sbField.ToString() + ",\n"; // rest comma doesn't matter
+            }
+            sqlCreateTable += "\n);";
+
+            Conn.ExecuteNonQuery(sqlCreateTable);
+
+            // Create index
+            if (indexFields.Count > 0)
+            {
+                var fields = string.Join(", ", indexFields);
+                var sqlCreateTableIndex = string.Format("CREATE UNIQUE INDEX {0}_INDEX ON {0}(\n{1}\n);", tableName, fields);
+
+                Conn.ExecuteNonQuery(sqlCreateTableIndex);
+            }
+
+            return true;
+        }
     }
 
-    internal enum SelectStyle
+    internal enum SelectFieldStyle
     {
         FieldNameOnly,
         FieldNameOrAlias,
         FieldNameAndAlias,
     }
+
+    public struct FieldDescription
+    {
+        public string FieldName;
+        public string FieldType;
+        public string Constraints;
+        public bool IfIndex;
+    }
+    
 }

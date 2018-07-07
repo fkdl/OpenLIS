@@ -5,15 +5,12 @@
 	</debug>
 	<db_conn>
 		<address value="127.0.0.1"/>
-		<user_name value="sa"/>
-		<password value="]X(coYt6fNC1"/>
-		<default_db value="Test"/>
-		<!--user_name value="lis"/>
+		<user_name value="lis"/>
 		<password value="slis"/>
-		<default_db value="clabsdb"/-->
+		<default_db value="Test"/>
 	</db_conn>
 	<system>
-		<system_name value="广钢医院检验系统 - V 1.0" />
+		<system_name value="XXXX系统 - V 1.0" />
 	</system>
 	<format>
 		<datetime_format value="yyyy-MM-dd HH:mm:ss" />

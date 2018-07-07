@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using Base.Utilities;
+using System.Data.SqlClient;
+using System.Linq;
 using System.Text;
 
 namespace Base.DB.Model.Conditions
@@ -18,16 +20,19 @@ namespace Base.DB.Model.Conditions
             }
 
             // Combine all elements into IN clause
-            var sb = new StringBuilder();
+            var sbSql = new StringBuilder();
             foreach (var v in valueList.Where(m => m != null))
             {
-                if (sb.Length > 0)
-                    sb.Append(", ");
+                // append SQL
+                if (sbSql.Length > 0) sbSql.Append(", "); // seperator
+                var pName = "@p" + StaticCounter.Next;
+                sbSql.Append(pName);
 
-                sb.Append(ConvertParam(v));
+                // push parameters
+                SqlParams.Add(new SqlParameter(pName, ConvertParam(v)));
             }
-
-            Sql = string.Format("{0} IN ({1})", field, sb);
+            
+            Sql = string.Format("{0} IN ({1})", field, sbSql);
         }
     }
 }

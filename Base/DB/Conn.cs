@@ -46,6 +46,8 @@ namespace Base.DB
                     command.Parameters.AddRange(sqlParams.ToArray());
 
                 var result = command.ExecuteNonQuery();
+
+                command.Parameters.Clear();
                 Connection.Close();
 
                 LogHelper.WriteLogInfo(string.Format("Non-query excuted. Affected lines = {0}", result));
@@ -79,6 +81,8 @@ namespace Base.DB
 
                 var adapter = new SqlDataAdapter(command);
                 adapter.Fill(result);
+
+                command.Parameters.Clear();
                 Connection.Close();
 
                 LogHelper.WriteLogInfo(string.Format("Data table fetched. Total lines = {0}", result.Rows.Count));
