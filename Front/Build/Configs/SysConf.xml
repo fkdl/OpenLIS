@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<conf>
+	<debug>
+		<debug_mode value="true" />
+	</debug>
+	<db_conn>
+		<address value="127.0.0.1"/>
+		<user_name value="lis"/>
+		<password value="slis"/>
+		<default_db value="Test"/>
+	</db_conn>
+	<system>
+		<system_name value="XXXX系统 - V 1.0" />
+	</system>
+	<format>
+		<datetime_format value="yyyy-MM-dd HH:mm:ss" />
+	</format>
+</conf>

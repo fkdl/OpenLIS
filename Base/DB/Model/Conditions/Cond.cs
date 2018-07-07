@@ -25,7 +25,7 @@ namespace Base.DB.Model.Conditions
             Sql = string.Empty;
             SqlParams = new List<SqlParameter>();
         }
-
+        
         protected string ConvertParam(object x)
         {
             // numbers
@@ -34,7 +34,7 @@ namespace Base.DB.Model.Conditions
 
             // date & time
             if (x is DateTime)
-                return string.Format("'{0}'", ((DateTime) x).ToString(SysConf.DateTimeFormat));
+                return ((DateTime)x).ToString(SysConf.DateTimeFormat);
 
             // string
             return x.ToString();
