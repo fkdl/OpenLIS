@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Base.DB.Model.Conditions;
 using System.Text;
 using System.Data;
@@ -11,11 +12,11 @@ namespace Base.DB.Model.Models
 {
     public class MPlain
     {
-        protected string TableName = "";
-        protected string KeyField = "";
+        protected string TableName = string.Empty;
+        protected string KeyField = string.Empty;
 
         protected bool IsDistinct = false;
-        protected string TableAlias = "";
+        protected string TableAlias = string.Empty;
         protected Hashtable SelectFields = new Hashtable();
         protected List<string> JoinConditions = new List<string>();
         protected List<string> WhereConditions = new List<string>();
@@ -32,7 +33,7 @@ namespace Base.DB.Model.Models
         {
             if (string.IsNullOrEmpty(table))
             {
-                var errMsg = "Error: Table name not specified.";
+                const string errMsg = "Error: Table name not specified.";
 
                 LogHelper.WriteLogError(errMsg);
                 throw new Exception(errMsg);
@@ -77,7 +78,7 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         public MPlain Field(string field, string alias = "")
         {
-            if (field == null) return this;
+            if (string.IsNullOrEmpty(field)) return this;
 
             if (SelectFields.ContainsKey(field))
                 SelectFields[field] = alias;
@@ -98,7 +99,7 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(condSql)) return this;
 
             WhereConditions.Add(condSql);
-            SqlParams.AddRange(condition.FetchParams());
+            if (condition != null) SqlParams.AddRange(condition.FetchParams());
 
             return this;
         }
@@ -119,7 +120,7 @@ namespace Base.DB.Model.Models
             if (joinType != "INNER" && joinType != "LEFT" && joinType != "RIGHT" && joinType != "FULL") return this;
 
             var condSql = (condition == null ? "" : condition.FetchSql());
-            if (condSql != "") SqlParams.AddRange(condition.FetchParams());
+            if (condition != null) SqlParams.AddRange(condition.FetchParams());
 
             JoinConditions.Add(
                 joinType + " JOIN " +
@@ -153,7 +154,7 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(condSql)) return this;
 
             HavingConditions.Add(condSql);
-            SqlParams.AddRange(condition.FetchParams());
+            if (condition != null) SqlParams.AddRange(condition.FetchParams());
 
             return this;
         }
@@ -183,7 +184,7 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(mScript)) return this;
 
             UnionScripts.Add(mScript);
-            SqlParams.AddRange(m.SqlParams);
+            if (m != null) SqlParams.AddRange(m.SqlParams);
 
             return this;
         }
@@ -268,13 +269,8 @@ namespace Base.DB.Model.Models
             // Fields to be selected
             if (LimitLength > 0) // Implement LIMIT with ROW_NUMBER()
             {
-                string rowNumberOrderBy;
-
                 // if exist grouped fields, ROW_NUMBER sorts over them.
-                if (GroupFields.Count > 0)
-                    rowNumberOrderBy = string.Join(", ", GroupFields);
-                else
-                    rowNumberOrderBy = KeyField;
+                var rowNumberOrderBy = (GroupFields.Count > 0 ? string.Join(", ", GroupFields) : KeyField);
 
                 result.Append(string.Format("ROW_NUMBER() OVER(ORDER BY {0}) AS ROW_NUMBER, ", rowNumberOrderBy));
             }
@@ -367,27 +363,27 @@ namespace Base.DB.Model.Models
         /// <param name="paramName">Parameter name</param>
         /// <param name="newValue">New value</param>
         /// <returns></returns>
-        public MPlain SetParam(string paramName, object newValue)
+        public MPlain SetParamValue(string paramName, object newValue)
         {
             var paramIndex = SqlParams.FindIndex(m => m.ParameterName == paramName);
             if (paramIndex < 0) return this;
 
-            SqlParams[paramIndex].Value = (newValue == null ? DBNull.Value : newValue); // ?
+            SqlParams[paramIndex].Value = (newValue ?? DBNull.Value); // ?
 
             return this;
         }
 
         /// <summary>
-        /// Set value of specified parameter.
+        /// Get value of specified parameter.
         /// </summary>
         /// <param name="paramName">Parameter name</param>
         /// <returns></returns>
-        public object GetParam(string paramName)
+        public object GetParamValue(string paramName)
         {
             var paramIndex = SqlParams.FindIndex(m => m.ParameterName == paramName);
             if (paramIndex < 0) return null;
 
-            return SqlParams[paramIndex].Value == DBNull.Value ? null : SqlParams[paramIndex].Value; // ?
+            return (SqlParams[paramIndex].Value == DBNull.Value ? null : SqlParams[paramIndex].Value); // ?
         }
 
         #endregion
@@ -398,7 +394,7 @@ namespace Base.DB.Model.Models
         /// Variable "_cache" stores temp data to be inserted or updated,
         /// in the format of [k = field name, v = field value].
         /// </summary>
-        protected readonly Hashtable _cache = new Hashtable();
+        protected readonly Hashtable Cache = new Hashtable();
 
         /// <summary>
         /// Set value in "TmpData".
@@ -412,10 +408,10 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(field)) return this;
 
             // Add or Modify field value
-            if (_cache.Contains(field))
-                _cache[field] = value;
+            if (Cache.Contains(field))
+                Cache[field] = value;
             else
-                _cache.Add(field, value);
+                Cache.Add(field, value);
 
             return this;
         }
@@ -430,9 +426,9 @@ namespace Base.DB.Model.Models
             var sql = (key == null ? CacheInsertSql() : CacheUpdateSql(key));
             var sqlParams = CacheParams();
 
-            _cache.Clear(); // clear data after store.
+            Cache.Clear(); // clear data after store.
 
-            return Conn.ExecuteNonQuery(sql, SqlParams);
+            return Conn.ExecuteNonQuery(sql, sqlParams);
         }
 
         /// <summary>
@@ -441,15 +437,10 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         private List<SqlParameter> CacheParams()
         {
-            var result = new List<SqlParameter>();
-
-            foreach (var k in _cache.Keys)
-            {
-                var v = (_cache[k] == null ? DBNull.Value : _cache[k]);
-                result.Add(new SqlParameter("@p_" + k, v));
-            }
-
-            return result;
+            return (
+                from object k in Cache.Keys
+                let v = (Cache[k] ?? DBNull.Value)
+                select new SqlParameter("@p_" + k, v)).ToList();
         }
 
         /// <summary>
@@ -461,7 +452,7 @@ namespace Base.DB.Model.Models
             var fields = string.Empty;
             var pNames = string.Empty;
 
-            foreach (var k in _cache.Keys)
+            foreach (var k in Cache.Keys)
             {
                 if (!string.IsNullOrEmpty(fields)) // seperator
                 {
@@ -469,8 +460,8 @@ namespace Base.DB.Model.Models
                     pNames += ", ";
                 }
 
-                fields = k.ToString();
-                pNames = "@p_" + k;
+                fields += k.ToString();
+                pNames += "@p_" + k;
             }
 
             return string.Format("INSERT INTO {0} ({1}) VALUES({2})", TableName, fields, pNames);
@@ -485,7 +476,7 @@ namespace Base.DB.Model.Models
         {
             var expr = string.Empty;
 
-            foreach (var k in _cache.Keys)
+            foreach (var k in Cache.Keys)
             {
                 if (!string.IsNullOrEmpty(expr)) // seperator
                     expr += ", ";
@@ -508,6 +499,7 @@ namespace Base.DB.Model.Models
         public int Delete(Cond cond)
         {
             var sql = string.Format("DELETE FROM {0} WHERE {1}", TableName, cond.FetchSql());
+            LogHelper.WriteLogInfo(sql);
             return Conn.ExecuteNonQuery(sql, cond.FetchParams());
         }
 
@@ -553,6 +545,7 @@ namespace Base.DB.Model.Models
                     "IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('{0}')) DROP TABLE {0};",
                     tableName);
                 Conn.ExecuteNonQuery(sqlDropIfExists);
+                LogHelper.WriteLogInfo(string.Format("Drop table {0} if exists.", tableName));
             }
 
             // Create table
@@ -570,19 +563,19 @@ namespace Base.DB.Model.Models
                 // index fields
                 if (description.IfIndex) indexFields.Add(description.FieldName);
                 
-                sqlCreateTable += sbField.ToString() + ",\n"; // rest comma doesn't matter
+                sqlCreateTable += sbField + ",\n"; // rest comma doesn't matter
             }
             sqlCreateTable += "\n);";
-
             Conn.ExecuteNonQuery(sqlCreateTable);
+            LogHelper.WriteLogInfo(string.Format("Create table {0}.", tableName));
 
-            // Create index
+            // Create indexes
             if (indexFields.Count > 0)
             {
                 var fields = string.Join(", ", indexFields);
-                var sqlCreateTableIndex = string.Format("CREATE UNIQUE INDEX {0}_INDEX ON {0}(\n{1}\n);", tableName, fields);
-
+                var sqlCreateTableIndex = string.Format("CREATE INDEX {0}_INDEX ON {0}(\n{1}\n);", tableName, fields);
                 Conn.ExecuteNonQuery(sqlCreateTableIndex);
+                LogHelper.WriteLogInfo(string.Format("Create index {0} on table {1}", fields, tableName));
             }
 
             return true;

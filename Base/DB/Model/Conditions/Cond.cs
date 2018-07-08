@@ -20,7 +20,7 @@ namespace Base.DB.Model.Conditions
             return SqlParams;
         }
 
-        public Cond()
+        protected Cond()
         {
             Sql = string.Empty;
             SqlParams = new List<SqlParameter>();
