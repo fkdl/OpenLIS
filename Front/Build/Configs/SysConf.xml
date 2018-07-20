@@ -5,8 +5,8 @@
 	</debug>
 	<db_conn>
 		<address value="127.0.0.1"/>
-		<user_name value="sa"/>
-		<password value="]X(coYt6fNC1"/>
+		<user_name value="lis"/>
+		<password value="slis"/>
 		<default_db value="Test"/>
 	</db_conn>
 	<system>

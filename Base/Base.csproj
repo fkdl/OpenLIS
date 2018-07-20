@@ -50,20 +50,26 @@
     <Compile Include="Conf\BaseConf.cs" />
     <Compile Include="Conf\SysConf.cs" />
     <Compile Include="DB\Conn.cs" />
-    <Compile Include="DB\Model\Conditions\CondBtwn.cs" />
-    <Compile Include="DB\Model\Conditions\CondCmpr.cs" />
-    <Compile Include="DB\Model\Conditions\Cond.cs" />
-    <Compile Include="DB\Model\Conditions\CondGroup.cs" />
-    <Compile Include="DB\Model\Conditions\CondIn.cs" />
-    <Compile Include="DB\Model\Conditions\CondNot.cs" />
-    <Compile Include="DB\Model\Conditions\CondRaw.cs" />
-    <Compile Include="DB\Model\Models\MEav.cs" />
-    <Compile Include="DB\Model\Models\MPlain.cs" />
+    <Compile Include="DB\Model\CondExpr\CondBtwn.cs" />
+    <Compile Include="DB\Model\CondExpr\CondCmpr.cs" />
+    <Compile Include="DB\Model\CondExpr\Cond.cs" />
+    <Compile Include="DB\Model\CondExpr\CondGroup.cs" />
+    <Compile Include="DB\Model\CondExpr\CondIn.cs" />
+    <Compile Include="DB\Model\CondExpr\CondNot.cs" />
+    <Compile Include="DB\Model\CondExpr\CondRaw.cs" />
+    <Compile Include="DB\Model\Models\M.cs" />
+    <Compile Include="DB\Model\Models\M_SaveDelete.cs" />
+    <Compile Include="DB\Model\Models\M_Select.cs" />
+    <Compile Include="DB\Model\Models\SqlServer\CondExpr\TypeDef.cs" />
+    <Compile Include="DB\Model\Models\SqlServer\V2008\EAV.cs" />
+    <Compile Include="DB\Model\Models\SqlServer\V2008\M.cs" />
     <Compile Include="Logger\LogHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\StaticCounter.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="DB\Model\Models\MySql\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
-using Base.DB.Model.Models;
+using Base.DB.Model.Models.SqlServer.V2008;
+using Base.DB.Model.Models.SqlServer.CondExpr;
 
 namespace Front
 {
@@ -13,13 +14,11 @@ namespace Front
             Application.SetCompatibleTextRenderingDefault(false);
             //Application.Run(new FrmMain());
 
-            //MEav.Create();
-            var eav = new MEav("experiment");
-
-            MessageBox.Show(eav["e1", "a1"].ToString());
-            MessageBox.Show(eav["e1", "a2"].ToString());
-            MessageBox.Show(eav["e2", "a1"].ToString());
-            MessageBox.Show(eav["e2", "a2"].ToString());
+            var m = new M("Friends");
+            m.Data("name", "KK").Data("contact", "9It59IIejKlv+-e").Data("birthday", "1999/3/14");
+            
+            MessageBox.Show(m.Save().ToString());
         }
     }
+    
 }
