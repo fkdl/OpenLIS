@@ -57,10 +57,11 @@
     <Compile Include="DB\Model\CondExpr\CondIn.cs" />
     <Compile Include="DB\Model\CondExpr\CondNot.cs" />
     <Compile Include="DB\Model\CondExpr\CondRaw.cs" />
+    <Compile Include="DB\Model\Models\EAV.cs" />
     <Compile Include="DB\Model\Models\M.cs" />
     <Compile Include="DB\Model\Models\M_SaveDelete.cs" />
     <Compile Include="DB\Model\Models\M_Select.cs" />
-    <Compile Include="DB\Model\Models\SqlServer\CondExpr\TypeDef.cs" />
+    <Compile Include="DB\Model\Models\SqlServer\CondExpr.cs" />
     <Compile Include="DB\Model\Models\SqlServer\V2008\EAV.cs" />
     <Compile Include="DB\Model\Models\SqlServer\V2008\M.cs" />
     <Compile Include="Logger\LogHelper.cs" />

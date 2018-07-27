@@ -29,10 +29,13 @@ namespace Base.DB
                     string.Format("Error occured on establishing DB connection. Exception message: {0}", ex.Message));
             }
         }
-
-        public static TDbConn GetConnection()
+        
+        public static TDbConn DbConnection
         {
-            return Connection;
+            get
+            {
+                return Connection;
+            }
         }
 
         public static int ExecuteNonQuery(string sql, List<TDbParam> dbParams = null)

@@ -1,4 +1,5 @@
 ﻿using Base.Logger;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
@@ -10,17 +11,28 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         public M(string table, string keyField = "id") : base(table, keyField)
         {
         }
-        
+
         /// <summary>
-        /// Fetch SQL script for the current model.
+        /// Fetch SELECT SQL by current configuration.
         /// </summary>
         /// <returns>SQL script</returns>
-        public override string FetchSql()
+        protected override string SelectSql()
         {
             var result = new StringBuilder();
 
             // SELECT
-            result.Append(SelectClause());
+            result.Append("SELECT");
+            if (IsDistinct) result.Append(" DISTINCT");// if distinct
+            result.Append("\n");
+            if (LimitLength > 0) // Implement LIMIT with ROW_NUMBER()
+            {
+                // if exist grouped fields, ROW_NUMBER sorts over them.
+                // otherwise, ROW_NUMBER sorts over KeyField.
+                var rowNumberOrderBy = (GroupByFields.Count > 0 ? string.Join(", ", GroupByFields) : KeyField);
+                result.Append(string.Format("ROW_NUMBER() OVER(ORDER BY {0}) AS ROW_NUMBER, ", rowNumberOrderBy));
+            }
+            result.Append(ConcatSelectFields());// Fields to be selected
+
             // FROM
             result.Append("\nFROM " + TableName + (TableAlias == "" ? "" : " AS " + TableAlias));
             // JOIN
@@ -33,13 +45,11 @@ namespace Base.DB.Model.Models.SqlServer.V2008
             result.Append(HavingConditions.Count > 0 ? "\nHAVING " + string.Join(" AND ", HavingConditions) : "");
 
             // To impletment LIMIT, wrap select SQL with another SELECT having a range constrat on ROW_NUMBER.
-            // Put ORDER BY and UNION outside this wrap.
+            // Put ORDER BY outside this wrap.
             if (LimitLength > 0)
             {
-                // the prefix
-                var prefix = string.Format("SELECT {0} FROM(\n", SelectFieldsInStyle(SelectFieldStyle.FieldNameOrAlias));
-
-                // the postfix
+                var prefix = string.Format("SELECT {0} FROM(\n", ConcatSelectFields(FieldNameStyle.FieldNameOrAlias));
+                
                 var postfix = string.Format("\n) AS T\nWHERE ROW_NUMBER BETWEEN {0} AND {1}",
                     LimitOffset + 1,
                     LimitOffset + LimitLength);
@@ -54,37 +64,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
 
             return result.ToString();
         }
-
-        /// <summary>
-        /// Accordingly add DISTINCT after SELECT.
-        /// Fetch style-specified fields into to select clause.
-        /// </summary>
-        /// <returns></returns>
-        protected override string SelectClause()
-        {
-            var result = new StringBuilder();
-
-            result.Append("SELECT");
-
-            // if distinct
-            if (IsDistinct) result.Append(" DISTINCT");
-
-            result.Append("\n");
-
-            // Fields to be selected
-            if (LimitLength > 0) // Implement LIMIT with ROW_NUMBER()
-            {
-                // if exist grouped fields, ROW_NUMBER sorts over them.
-                var rowNumberOrderBy = (GroupByFields.Count > 0 ? string.Join(", ", GroupByFields) : KeyField);
-
-                result.Append(string.Format("ROW_NUMBER() OVER(ORDER BY {0}) AS ROW_NUMBER, ", rowNumberOrderBy));
-            }
-            result.Append(SelectFieldsInStyle());
-
-            return result.ToString();
-        }
-
-
+        
         /// <summary>
         /// Fetch INSER SQL by cached data.
         /// </summary>
@@ -130,49 +110,58 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         }
 
         /// <summary>
-        /// Static method, to generate a plain table.
+        /// To generate a plain table.
         /// </summary>
         /// <param name="tableName">Table to be created.</param>
         /// <param name="fieldDescriptions">Descriptions to all fields.</param>
-        /// <param name="checkExists">Drop table first if already exists.</param>
+        /// <param name="clearBefore">Drop table first if already exists.</param>
         /// <returns>If generation was successful.</returns>
-        public static bool Create(string tableName, IEnumerable<FieldDescription> fieldDescriptions, bool checkExists = true)
+        public static bool Create(string tableName, IEnumerable<FieldDesc> fieldDescriptions, bool clearBefore = true)
         {
-            // Drop if exists
-            if (checkExists) Drop(tableName);
-
-            // Create table
-            var indexFields = new List<string>();
-            var sqlCreateTable = string.Format("CREATE TABLE {0}(\n", tableName);
-            foreach (var description in fieldDescriptions)
+            try
             {
-                var sbField = new StringBuilder();
+                // Drop if exists
+                if (clearBefore) Drop(tableName);
 
-                // field name
-                sbField.Append(description.FieldName);
-                // field type
-                if (!string.IsNullOrEmpty(description.FieldType)) sbField.Append(" " + description.FieldType);
-                // constrains
-                if (!string.IsNullOrEmpty(description.Constraints)) sbField.Append(" " + description.Constraints);
-                // index fields
-                if (description.IfIndex) indexFields.Add(description.FieldName);
+                // Create table
+                var indexFields = new List<string>(); // store index fields
+                var sqlCreateTable = string.Format("CREATE TABLE {0}(\n", tableName);
+                foreach (var description in fieldDescriptions)
+                {
+                    var sbField = new StringBuilder();
 
-                sqlCreateTable += sbField + ",\n"; // rest comma doesn't matter
+                    // field name
+                    sbField.Append(description.Name);
+                    // field type
+                    if (!string.IsNullOrEmpty(description.Type)) sbField.Append(" " + description.Type);
+                    // constrain
+                    if (!string.IsNullOrEmpty(description.Constraints)) sbField.Append(" " + description.Constraints);
+                    // if index field
+                    if (description.Index) indexFields.Add(description.Name);
+
+                    sqlCreateTable += sbField + ",\n"; // rest comma doesn't matter
+                }
+                sqlCreateTable += "\n);";
+                Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTable);
+                LogHelper.WriteLogInfo(string.Format("Created table {0}.", tableName));
+
+                // Create indexes
+                if (indexFields.Count > 0)
+                {
+                    var fields = string.Join(", ", indexFields);
+                    var sqlCreateTableIndex = string.Format("CREATE INDEX {0}_INDEX ON {0}(\n{1}\n);", tableName, fields);
+                    Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTableIndex);
+                    LogHelper.WriteLogInfo(string.Format("Created index {0} on table {1}", fields, tableName));
+                }
+
+                return true;
             }
-            sqlCreateTable += "\n);";
-            Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTable);
-            LogHelper.WriteLogInfo(string.Format("Create table {0}.", tableName));
-
-            // Create indexes
-            if (indexFields.Count > 0)
+            catch (Exception ex)
             {
-                var fields = string.Join(", ", indexFields);
-                var sqlCreateTableIndex = string.Format("CREATE INDEX {0}_INDEX ON {0}(\n{1}\n);", tableName, fields);
-                Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTableIndex);
-                LogHelper.WriteLogInfo(string.Format("Create index {0} on table {1}", fields, tableName));
+                LogHelper.WriteLogError(
+                    string.Format("Error occured on creating table {0}. Exception message: {1}", tableName, ex.Message));
+                return false;
             }
-
-            return true;
         }
 
         /// <summary>
@@ -182,12 +171,21 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         /// <returns></returns>
         public static bool Drop(string tableName)
         {
-            var sqlDropIfExists = string.Format(
-                    "IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('{0}')) DROP TABLE {0};",
-                    tableName);
-            Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlDropIfExists);
-            LogHelper.WriteLogInfo(string.Format("Drop table {0} if exists.", tableName));
-            return true;
+            try
+            {
+                var sqlDropIfExists = string.Format(
+                        "IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('{0}')) DROP TABLE {0};",
+                        tableName);
+                Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlDropIfExists);
+                LogHelper.WriteLogInfo(string.Format("Dropped table {0}.", tableName));
+                return true;
+            }
+            catch(Exception ex)
+            {
+                LogHelper.WriteLogError(
+                    string.Format("Error occured on dropping table {0}. Exception message: {1}", tableName, ex.Message));
+                return false;
+            }
         }
     }
 }

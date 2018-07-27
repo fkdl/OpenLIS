@@ -5,7 +5,7 @@ namespace Front
 {
     public partial class FrmMain
     {
-        public void Preloadinds()
+        public void Preloadings()
         {
             var t = new ToolStripMenuItem();
             t.Text = "&New Module";

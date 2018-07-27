@@ -8,7 +8,7 @@ namespace Front
         public FrmMain()
         {
             InitializeComponent();
-            Preloadinds();
+            Preloadings();
         }
 
         private void ExitToolsStripMenuItem_Click(object sender, EventArgs e)

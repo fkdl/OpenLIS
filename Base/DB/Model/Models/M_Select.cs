@@ -1,7 +1,6 @@
 ﻿using Base.DB.Model.CondExpr;
 using Base.Logger;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -18,7 +17,7 @@ namespace Base.DB.Model.Models
 
         protected bool IsDistinct = false;
         protected string TableAlias = string.Empty;
-        protected Hashtable SelectFields = new Hashtable();
+        protected Dictionary<string, string> SelectFields = new Dictionary<string, string>();
         protected List<string> JoinTables = new List<string>();
         protected List<string> WhereConditions = new List<string>();
         protected List<string> GroupByFields = new List<string>();
@@ -26,6 +25,8 @@ namespace Base.DB.Model.Models
         protected List<string> OrderByFields = new List<string>();
         protected int LimitOffset = -1;
         protected int LimitLength = -1;
+
+        #region SQL Construction
 
         /// <summary>
         /// Set if distinct.
@@ -35,6 +36,7 @@ namespace Base.DB.Model.Models
         public M<TDbConn, TDbParam> Distinct(bool distinct = true)
         {
             IsDistinct = distinct;
+
             CachedSelectSql = string.Empty;
             return this;
         }
@@ -51,6 +53,7 @@ namespace Base.DB.Model.Models
                 TableAlias = alias;
                 CachedSelectSql = string.Empty;
             }
+            
             return this;
         }
 
@@ -68,8 +71,8 @@ namespace Base.DB.Model.Models
                 SelectFields[field] = alias;
             else
                 SelectFields.Add(field, alias);
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
@@ -80,13 +83,13 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         public M<TDbConn, TDbParam> Where(Cond<TDbParam> condition)
         {
-            var condSql = (condition == null ? "" : condition.FetchSql());
+            var condSql = (condition == null ? string.Empty : condition.FetchSql());
             if (string.IsNullOrEmpty(condSql)) return this;
 
             WhereConditions.Add(condSql);
             if (condition != null) DbParams.AddRange(condition.FetchDbParams());
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
@@ -112,8 +115,8 @@ namespace Base.DB.Model.Models
                 joinType + " JOIN " +
                 (alias == "" ? table : table + " AS " + alias) +
                 (condSql == "" ? "" : " ON " + condSql));
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
@@ -127,8 +130,8 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(field)) return this;
 
             GroupByFields.Add(field);
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
@@ -139,13 +142,13 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         public M<TDbConn, TDbParam> Having(Cond<TDbParam> condition)
         {
-            var condSql = condition == null ? "" : condition.FetchSql();
+            var condSql = condition == null ? string.Empty : condition.FetchSql();
             if (string.IsNullOrEmpty(condSql)) return this;
 
             HavingConditions.Add(condSql);
             if (condition != null) DbParams.AddRange(condition.FetchDbParams());
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
@@ -159,51 +162,41 @@ namespace Base.DB.Model.Models
         {
             if (string.IsNullOrEmpty(field)) return this;
 
-            OrderByFields.Add(field + (asc ? "" : " DESC"));
-            CachedSelectSql = string.Empty;
+            OrderByFields.Add(field + (asc ? string.Empty : " DESC"));
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
         /// <summary>
         /// Set offset and length for LIMIT
         /// </summary>
-        /// <param name="offset"></param>
+        /// <param name="offset">Starts from 0.</param>
         /// <param name="length"></param>
         /// <returns></returns>
         public M<TDbConn, TDbParam> Limit(int offset, int length)
         {
             LimitOffset = offset;
             LimitLength = length;
-            CachedSelectSql = string.Empty;
 
+            CachedSelectSql = string.Empty;
             return this;
         }
 
+        #endregion
+
         /// <summary>
-        /// Fetch SQL script for the current model.
+        /// Fetch SELECT SQL by current configuration.
         /// </summary>
         /// <returns>SQL script</returns>
-        public abstract string FetchSql();
-
-        public string SelectSql
-        {
-            get { throw new NotImplementedException(); }
-        }
-
-        /// <summary>
-        /// Accordingly add DISTINCT after SELECT.
-        /// Fetch style-specified fields into to select clause. 
-        /// </summary>
-        /// <returns></returns>
-        protected abstract string SelectClause();
-
+        protected abstract string SelectSql();
+        
         /// <summary>
         /// Concat SELECT fields with specified style.
         /// </summary>
         /// <param name="style">SelectStyle</param>
         /// <returns></returns>
-        protected string SelectFieldsInStyle(SelectFieldStyle style = SelectFieldStyle.FieldNameAndAlias)
+        protected string ConcatSelectFields(FieldNameStyle style = FieldNameStyle.FieldNameAndAlias)
         {
             var result = new StringBuilder();
 
@@ -216,21 +209,21 @@ namespace Base.DB.Model.Models
 
             foreach (var field in SelectFields.Keys)
             {
-                var alias = SelectFields[field].ToString();
+                var alias = SelectFields[field];
 
                 if (result.Length > 0) result.Append(", "); // seperator
 
                 switch (style)
                 {
-                    case SelectFieldStyle.FieldNameAndAlias:
-                        result.Append(alias == ""
+                    case FieldNameStyle.FieldNameAndAlias:
+                        result.Append(string.IsNullOrEmpty(alias)
                             ? field
                             : string.Format("{0} AS {1}", field, alias));
                         break;
-                    case SelectFieldStyle.FieldNameOrAlias:
+                    case FieldNameStyle.FieldNameOrAlias:
                         result.Append(alias == "" ? field : alias);
                         break;
-                    case SelectFieldStyle.FieldNameOnly:
+                    case FieldNameStyle.FieldNameOnly:
                         result.Append(field);
                         break;
                 }
@@ -246,37 +239,48 @@ namespace Base.DB.Model.Models
         /// <returns></returns>
         public DataTable Select(bool initAfter = false)
         {
-            // Fetch select SQL.
-            var sql = FetchSql();
+            if (string.IsNullOrEmpty(CachedSelectSql))
+                CachedSelectSql = SelectSql();
 
-            //  Clear all configurations.
-            if (initAfter)
-            {
-                IsDistinct = false;
-                TableAlias = "";
+            var result = Conn<TDbConn, TDbParam>.ExecuteDataTable(CachedSelectSql, DbParams);
 
-                WhereConditions.Clear();
-                SelectFields.Clear();
-                JoinTables.Clear();
-                OrderByFields.Clear();
-                LimitOffset = -1;
-                LimitLength = -1;
-                GroupByFields.Clear();
-                HavingConditions.Clear();
+            if (initAfter) ResetSelectConfig();
 
-                DbParams.Clear();
-            }
-
-            // Fetch data.
-            return Conn<TDbConn, TDbParam>.ExecuteDataTable(sql, DbParams);
+            return result;
         }
+        
+        /// <summary>
+        /// Reset SELECT SQL configurations.
+        /// </summary>
+        /// <returns></returns>
+        public M<TDbConn, TDbParam> ResetSelectConfig()
+        {
+            DbParams.Clear();
+            CachedSelectSql = string.Empty;
+
+            IsDistinct = false;
+            TableAlias = string.Empty;
+
+            WhereConditions.Clear();
+            SelectFields.Clear();
+            JoinTables.Clear();
+            OrderByFields.Clear();
+            LimitOffset = -1;
+            LimitLength = -1;
+            GroupByFields.Clear();
+            HavingConditions.Clear();
+
+            return this;
+        }
+
+        #region Parameter Values
 
         /// <summary>
         /// Get value of specified parameter.
         /// </summary>
         /// <param name="paramName">Parameter name</param>
         /// <returns></returns>
-        public object GetParamValue(string paramName)
+        public object GetParam(string paramName)
         {
             var paramIndex = DbParams.FindIndex(m => m.ParameterName == paramName);
             if (paramIndex < 0) return null;
@@ -290,7 +294,7 @@ namespace Base.DB.Model.Models
         /// <param name="paramName">Parameter name</param>
         /// <param name="newValue">New value</param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> SetParamValue(string paramName, object newValue)
+        public M<TDbConn, TDbParam> SetParam(string paramName, object newValue)
         {
             var paramIndex = DbParams.FindIndex(m => m.ParameterName == paramName);
             if (paramIndex < 0) return this;
@@ -299,5 +303,14 @@ namespace Base.DB.Model.Models
 
             return this;
         }
+
+        #endregion
+    }
+
+    public enum FieldNameStyle
+    {
+        FieldNameOnly,      // Use original field names only, without any alias names.
+        FieldNameOrAlias,   // Use alias names if specified, otherwise, use original.
+        FieldNameAndAlias,  // Use original field names, additionally, append " AS " + [alias] if specified.
     }
 }

@@ -15,10 +15,9 @@ namespace Base.DB.Model.Models
         #region Insert/Update
 
         /// <summary>
-        /// Variable "_cache" stores temp data to be inserted or updated,
-        /// in the format of [k = field name, v = field value].
+        /// Stores temp data to be inserted or updated.
         /// </summary>
-        protected readonly Hashtable DataCache = new Hashtable();
+        protected readonly Dictionary<string, object> DataCache = new Dictionary<string, object>();
 
         /// <summary>
         /// Set value in "TmpData".
@@ -32,7 +31,7 @@ namespace Base.DB.Model.Models
             if (string.IsNullOrEmpty(field)) return this;
 
             // Add or Modify field value
-            if (DataCache.Contains(field))
+            if (DataCache.ContainsKey(field))
                 DataCache[field] = value;
             else
                 DataCache.Add(field, value);
@@ -48,10 +47,11 @@ namespace Base.DB.Model.Models
         public virtual object Save(object key = null)
         {
             var sql = (key == null ? InsertSql() : UpdateSql(key));
-            var sqlParams = ParamsForDataCache();
+            var sqlParams = DataCacheParams();
 
             DataCache.Clear(); // clear data after store.
             LogHelper.WriteLogInfo(sql);
+            
             return Conn<TDbConn, TDbParam>.ExecuteScalar(sql, sqlParams);
         }
 
@@ -59,10 +59,10 @@ namespace Base.DB.Model.Models
         /// Fetch parameters by cached data
         /// </summary>
         /// <returns></returns>
-        private List<TDbParam> ParamsForDataCache()
+        private List<TDbParam> DataCacheParams()
         {
             return (
-                from object k in DataCache.Keys
+                from string k in DataCache.Keys
                 let v = (DataCache[k] ?? DBNull.Value)
                 select new TDbParam { ParameterName = "@p_" + k, Value = v }).ToList();
         }
