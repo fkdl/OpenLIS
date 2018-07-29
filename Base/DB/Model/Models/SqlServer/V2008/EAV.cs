@@ -1,15 +1,15 @@
-﻿using Base.DB.Model.Models.SqlServer.CondExpr;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 
 namespace Base.DB.Model.Models.SqlServer.V2008
 {
-    public class EAV
+    public class Eav
     {
         protected string EntityModel = string.Empty;
         
-        public EAV(string entityModel)
+        public Eav(string entityModel)
         {
             EntityModel = entityModel;
         }
@@ -21,7 +21,6 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         /// <returns></returns>
         public List<Entity> Entities(string entityCode = null)
         {
-            var result = new List<Entity>();
             var m = new M("eav_entity")
                 .Field("id")
                 .Field("entity_model")
@@ -33,17 +32,14 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 m.Where(new ExprCompare("entity_code", "=", entityCode));
             
             // fetch data
-            foreach (DataRow row in m.Select().Rows)
-            {
-                result.Add(new Entity
+            return (
+                from DataRow row in m.Select().Rows
+                select new Entity
                 {
                     Id = Convert.ToInt32(row["id"]),
                     Model = row["entity_model"].ToString(),
                     Code = row["entity_code"].ToString(),
-                });
-            }
-
-            return result;
+                }).ToList();
         }
 
         /// <summary>
@@ -53,7 +49,6 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         /// <returns></returns>
         public List<Attr> Attributes(string attrCode = null)
         {
-            var result = new List<Attr>();
             var m = new M("eav_attr")
                 .Field("id")
                 .Field("attr_code")
@@ -61,21 +56,20 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 .Field("entity_model")
                 .Where(new ExprCompare("entity_model", "=", EntityModel));
 
+            // filtered by attribute code
             if (!string.IsNullOrEmpty(attrCode))
                 m.Where(new ExprCompare("attr_code", "=", attrCode));
-            
-            foreach (DataRow row in m.Select().Rows)
-            {
-                result.Add(new Attr
+
+            // fetch data
+            return (
+                from DataRow row in m.Select().Rows
+                select new Attr
                 {
                     Id = Convert.ToInt32(row["id"]),
                     Code = row["attr_code"].ToString(),
                     Type = row["attr_type"].ToString(),
                     Model = row["entity_model"].ToString(),
-                });
-            }
-
-            return result;
+                }).ToList();
         }
 
         public List<Value> Values(string entityCode, string attrCode)
@@ -95,16 +89,15 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                     .Where(new ExprCompare("attr_id", "=", a[0].Id))
                     .Select();
 
-            foreach(DataRow row in vResults.Rows)
-            {
-                result.Add(new Value
+            result.AddRange(
+                from DataRow row in vResults.Rows
+                select new Value
                 {
                     Id = Convert.ToInt32(row["id"]),
                     EntityId = Convert.ToInt32(row["entity_id"]),
                     AttrId = Convert.ToInt32(row["attr_id"]),
                     Val = row["value"]
                 });
-            }
 
             return result;
         }
@@ -130,7 +123,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 string type;
                 int entityId;
                 int attrId;
-
+                
                 // get entity ID
                 var entities = Entities(entityCode);
                 if (entities.Count < 1) // code not exists

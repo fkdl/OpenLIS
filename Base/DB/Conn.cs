@@ -122,9 +122,15 @@ namespace Base.DB
                 // Fill data
                 using (var reader = command.ExecuteReader())
                 {
+                    // fields
                     for (var i = 0; i < reader.FieldCount; i++)
-                        result.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+                    {
+                        var fieldName = reader.GetName(i);
+                        var fieldType = reader.GetFieldType(i);
+                        if (fieldType != null) result.Columns.Add(fieldName, fieldType);
+                    }
 
+                    // rows
                     while (reader.Read())
                     {
                         var newRow = result.NewRow();

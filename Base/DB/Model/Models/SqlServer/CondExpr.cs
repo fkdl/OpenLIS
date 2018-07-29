@@ -1,8 +1,8 @@
-﻿using Base.DB.Model.CondExpr;
+﻿using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Collections.Generic;
+using Base.DB.Model.CondExpr;
 
-namespace Base.DB.Model.Models.SqlServer.CondExpr
+namespace Base.DB.Model.Models.SqlServer
 {
     public class ExprBetween : CondBtwn<SqlParameter>
     {

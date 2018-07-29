@@ -82,7 +82,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                     pNames += ", ";
                 }
 
-                fields += k.ToString();
+                fields += k;
                 pNames += "@p_" + k;
             }
 

@@ -11,7 +11,7 @@ namespace Base.DB.Model.Models
         protected string TableName = string.Empty;
         protected string KeyField = string.Empty;
 
-        public M(string table, string keyField = "id")
+        protected M(string table, string keyField = "id")
         {
             if (string.IsNullOrEmpty(table))
             {
