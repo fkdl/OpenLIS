@@ -8,14 +8,14 @@ using System.Text;
 
 namespace Base.DB.Model.Models
 {
-    public abstract partial class M<TDbConn, TDbParam>
+    public partial class M<TDbConn, TDbParam>
         where TDbConn : DbConnection, new()
         where TDbParam : DbParameter, new()
     {
         protected List<TDbParam> DbParams = new List<TDbParam>();
         protected string CachedSelectSql = string.Empty;
 
-        protected bool IsDistinct = false;
+        protected bool IsDistinct;
         protected string TableAlias = string.Empty;
         protected Dictionary<string, string> SelectFields = new Dictionary<string, string>();
         protected List<string> JoinTables = new List<string>();
@@ -33,7 +33,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="distinct"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Distinct(bool distinct = true)
+        public virtual M<TDbConn, TDbParam> Distinct(bool distinct = true)
         {
             IsDistinct = distinct;
 
@@ -46,14 +46,12 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="alias"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Alias(string alias)
+        public virtual M<TDbConn, TDbParam> Alias(string alias)
         {
-            if (!string.IsNullOrEmpty(alias))
-            {
-                TableAlias = alias;
-                CachedSelectSql = string.Empty;
-            }
-            
+            if (string.IsNullOrEmpty(alias)) return this;
+            TableAlias = alias;
+            CachedSelectSql = string.Empty;
+
             return this;
         }
 
@@ -63,7 +61,7 @@ namespace Base.DB.Model.Models
         /// <param name="field">Field name</param>
         /// <param name="alias">Alias name of field</param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Field(string field, string alias = "")
+        public virtual M<TDbConn, TDbParam> Field(string field, string alias = "")
         {
             if (string.IsNullOrEmpty(field)) return this;
 
@@ -81,7 +79,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="condition"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Where(Cond<TDbParam> condition)
+        public virtual M<TDbConn, TDbParam> Where(Cond<TDbParam> condition)
         {
             var condSql = (condition == null ? string.Empty : condition.FetchSql());
             if (string.IsNullOrEmpty(condSql)) return this;
@@ -101,7 +99,7 @@ namespace Base.DB.Model.Models
         /// <param name="condition">Condition on join</param>
         /// <param name="joinType">One of "INNER", "LEFT", "RIGHT" and "FULL"</param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Join(string table, string alias = "", Cond<TDbParam> condition = null, string joinType = "INNER")
+        public virtual M<TDbConn, TDbParam> Join(string table, string alias = "", Cond<TDbParam> condition = null, string joinType = "INNER")
         {
             if (string.IsNullOrEmpty(table)) return this;
 
@@ -125,7 +123,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="field"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> GroupBy(string field)
+        public virtual M<TDbConn, TDbParam> GroupBy(string field)
         {
             if (string.IsNullOrEmpty(field)) return this;
 
@@ -140,7 +138,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="condition"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Having(Cond<TDbParam> condition)
+        public virtual M<TDbConn, TDbParam> Having(Cond<TDbParam> condition)
         {
             var condSql = condition == null ? string.Empty : condition.FetchSql();
             if (string.IsNullOrEmpty(condSql)) return this;
@@ -158,7 +156,7 @@ namespace Base.DB.Model.Models
         /// <param name="field"></param>
         /// <param name="asc">If ASC</param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> OrderBy(string field, bool asc = true)
+        public virtual M<TDbConn, TDbParam> OrderBy(string field, bool asc = true)
         {
             if (string.IsNullOrEmpty(field)) return this;
 
@@ -174,7 +172,7 @@ namespace Base.DB.Model.Models
         /// <param name="offset">Starts from 0.</param>
         /// <param name="length"></param>
         /// <returns></returns>
-        public M<TDbConn, TDbParam> Limit(int offset, int length)
+        public virtual M<TDbConn, TDbParam> Limit(int offset, int length)
         {
             LimitOffset = offset;
             LimitLength = length;
@@ -189,8 +187,11 @@ namespace Base.DB.Model.Models
         /// Fetch SELECT SQL by current configuration.
         /// </summary>
         /// <returns>SQL script</returns>
-        protected abstract string SelectSql();
-        
+        protected virtual string SelectSql()
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Concat SELECT fields with specified style.
         /// </summary>
@@ -218,7 +219,7 @@ namespace Base.DB.Model.Models
                     case FieldNameStyle.FieldNameAndAlias:
                         result.Append(string.IsNullOrEmpty(alias)
                             ? field
-                            : string.Format("{0} AS {1}", field, alias));
+                            : $"{field} AS {alias}");
                         break;
                     case FieldNameStyle.FieldNameOrAlias:
                         result.Append(alias == "" ? field : alias);
@@ -237,7 +238,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="initAfter">Clear all configurations after excution.</param>
         /// <returns></returns>
-        public DataTable Select(bool initAfter = false)
+        public virtual DataTable Select(bool initAfter = false)
         {
             if (string.IsNullOrEmpty(CachedSelectSql))
                 CachedSelectSql = SelectSql();
@@ -299,7 +300,7 @@ namespace Base.DB.Model.Models
             var paramIndex = DbParams.FindIndex(m => m.ParameterName == paramName);
             if (paramIndex < 0) return this;
 
-            DbParams[paramIndex].Value = (newValue ?? DBNull.Value); // ?
+            DbParams[paramIndex].Value = (newValue ?? DBNull.Value);
 
             return this;
         }

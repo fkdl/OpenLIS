@@ -4,14 +4,14 @@ using System.Data.Common;
 
 namespace Base.DB.Model.Models
 {
-    public abstract partial class M<TDbConn, TDbParam>
+    public partial class M<TDbConn, TDbParam>
         where TDbConn : DbConnection, new()
         where TDbParam : DbParameter, new()
     {
-        protected string TableName = string.Empty;
-        protected string KeyField = string.Empty;
+        protected string TableName;
+        protected string KeyField;
 
-        protected M(string table, string keyField = "id")
+        public M(string table, string keyField = "id")
         {
             if (string.IsNullOrEmpty(table))
             {
@@ -26,6 +26,9 @@ namespace Base.DB.Model.Models
         }
     }
 
+    /// <summary>
+    /// Description of table fields.
+    /// </summary>
     public struct FieldDesc
     {
         public string Name;

@@ -1,4 +1,5 @@
-﻿using Base.Utilities;
+﻿using System.Collections.Generic;
+using Base.Utilities;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
@@ -7,14 +8,14 @@ namespace Base.DB.Model.CondExpr
 {
     public class CondIn<TDbParam> : Cond<TDbParam> where TDbParam : DbParameter, new()
     {
-        public CondIn(string field, object[] valueList)
+        public CondIn(string field, ICollection<object> valueList)
         {
             // Any of the following situations makes an empty SQL:
 
-            if (string.IsNullOrEmpty(field) ||  // 1) field not specified
-                valueList == null ||            // 2) value list is null
-                valueList.Length < 1 ||         // 3) no elements in value list
-                valueList.All(m => m == null))  // 4) all elements in value list are null
+            if (string.IsNullOrEmpty(field) || // 1) field not specified
+                valueList == null || // 2) value list is null
+                valueList.Count < 1 || // 3) no elements in value list
+                valueList.All(m => m == null)) // 4) all elements in value list are null
             {
                 return;
             }
@@ -29,10 +30,10 @@ namespace Base.DB.Model.CondExpr
                 sbSql.Append(pName);
 
                 // push parameters
-                DbParams.Add(new TDbParam { ParameterName = pName, Value = ConvertDbValue(v) });
+                DbParams.Add(new TDbParam {ParameterName = pName, Value = ConvertDbValue(v)});
             }
-            
-            Sql = string.Format("{0} IN ({1})", field, sbSql);
+
+            Sql = $"{field} IN ({sbSql})";
         }
     }
 }

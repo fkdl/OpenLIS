@@ -12,7 +12,7 @@ namespace Base.DB.Model.CondExpr
             if (string.IsNullOrEmpty(cSql)) return;
 
             // set SQL
-            Sql = string.Format("NOT ({0})", cSql);
+            Sql = $"NOT ({cSql})";
 
             // push parameters
             Debug.Assert(cond != null, ""); // Never asserts

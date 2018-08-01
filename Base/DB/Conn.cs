@@ -11,39 +11,31 @@ namespace Base.DB
         where TDbConn : DbConnection, new()
         where TDbParam : DbParameter, new()
     {
-        private static readonly TDbConn Connection;
-
         static Conn()
         {
             try
             {
-                var connStr = string.Format("Data Source={0};User ID={1};Password={2};Database={3};",
-                    SysConf.DbAddress, SysConf.DbUserName, SysConf.DbPassword, SysConf.DbDefaultDb);
-                Connection = new TDbConn { ConnectionString = connStr };
+                var connStr =
+                    $"Data Source={SysConf.DbAddress};User ID={SysConf.DbUserName};Password={SysConf.DbPassword};Database={SysConf.DbDefaultDb};SslMode={SysConf.DbSslMode};";
+                DbConnection = new TDbConn {ConnectionString = connStr};
 
-                LogHelper.WriteLogInfo(string.Format("DB connection established. Conn string: {0}", connStr));
+                LogHelper.WriteLogInfo($"DB connection established. Conn string: {connStr}");
             }
             catch (Exception ex)
             {
                 LogHelper.WriteLogError(
-                    string.Format("Error occured on establishing DB connection. Exception message: {0}", ex.Message));
+                    $"Error occured on establishing DB connection. Exception message: {ex.Message}");
             }
         }
-        
-        public static TDbConn DbConnection
-        {
-            get
-            {
-                return Connection;
-            }
-        }
+
+        public static TDbConn DbConnection { get; }
 
         public static int ExecuteNonQuery(string sql, List<TDbParam> dbParams = null)
         {
             try
             {
-                Connection.Open();
-                var command = Connection.CreateCommand();
+                DbConnection.Open();
+                var command = DbConnection.CreateCommand();
                 command.CommandText = sql;
 
                 // DB parameters
@@ -53,18 +45,18 @@ namespace Base.DB
                 var result = command.ExecuteNonQuery();
 
                 command.Parameters.Clear();
-                Connection.Close();
+                DbConnection.Close();
 
-                LogHelper.WriteLogInfo(string.Format("Non-query excuted. Affected lines = {0}", result));
+                LogHelper.WriteLogInfo($"Non-query excuted. Affected lines = {result}");
 
                 return result;
             }
             catch (Exception ex)
             {
+                if ((DbConnection.State & ConnectionState.Open) != 0) DbConnection.Close();
+
                 LogHelper.WriteLogError(
-                    string.Format("Error occured on executing non-query: {0} Error Message: {1}",
-                        sql,
-                        ex.Message));
+                    $"Error occured on executing non-query: {sql} Error Message: {ex.Message}");
 
                 return -1;
             }
@@ -76,8 +68,8 @@ namespace Base.DB
 
             try
             {
-                Connection.Open();
-                var command = Connection.CreateCommand();
+                DbConnection.Open();
+                var command = DbConnection.CreateCommand();
                 command.CommandText = sql;
 
                 // Db parameters
@@ -87,19 +79,19 @@ namespace Base.DB
                 result = command.ExecuteScalar();
 
                 command.Parameters.Clear();
-                Connection.Close();
+                DbConnection.Close();
 
-                LogHelper.WriteLogInfo(string.Format("Scalar excuted. Returned = {0}", result));
+                LogHelper.WriteLogInfo($"Scalar excuted. Returned = {result}");
 
                 return result;
 
             }
             catch (Exception ex)
             {
+                if ((DbConnection.State & ConnectionState.Open) != 0) DbConnection.Close();
+
                 LogHelper.WriteLogError(
-                    string.Format("Error occured on executing scalar: {0} Error Message: {1}",
-                        sql,
-                        ex.Message));
+                    $"Error occured on executing scalar: {sql} Error Message: {ex.Message}");
             }
 
             return result;
@@ -111,8 +103,8 @@ namespace Base.DB
 
             try
             {
-                Connection.Open();
-                var command = Connection.CreateCommand();
+                DbConnection.Open();
+                var command = DbConnection.CreateCommand();
                 command.CommandText = sql;
 
                 // Db parameters
@@ -143,17 +135,17 @@ namespace Base.DB
 
                 // Finalization
                 command.Parameters.Clear();
-                Connection.Close();
+                DbConnection.Close();
 
-                LogHelper.WriteLogInfo(string.Format("Data table fetched. Total lines = {0}", result.Rows.Count));
+                LogHelper.WriteLogInfo($"Data table fetched. Total lines = {result.Rows.Count}");
 
             }
             catch (Exception ex)
             {
+                if ((DbConnection.State & ConnectionState.Open) != 0) DbConnection.Close();
+
                 LogHelper.WriteLogError(
-                    string.Format("Error occured on executing data table: {0} Error Message: {1}",
-                        sql,
-                        ex.Message));
+                    $"Error occured on executing data table: {sql} Error Message: {ex.Message}");
             }
 
             return result;

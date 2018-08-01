@@ -2,8 +2,8 @@
 {
     public static class StaticCounter
     {
-        private static int next = 0;
+        private static int _next;
 
-        public static int Next { get { return next++; } }
+        public static int Next => _next++;
     }
 }

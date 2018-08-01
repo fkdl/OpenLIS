@@ -16,13 +16,13 @@ namespace Base.Conf
             {
                 if (_configName != configName)
                 {
-                    Doc.Load(string.Format("./Configs/{0}.xml", configName));
+                    Doc.Load($"./Configs/{configName}.xml");
                     _configName = configName;
                 }
             }
             catch (Exception ex)
             {
-                LogHelper.WriteLogError(string.Format("Error occured on loading {0}.xml. Exception message: {1}", configName, ex.Message));
+                LogHelper.WriteLogError($"Error occured on loading {configName}.xml. Exception message: {ex.Message}");
             }
         }
 
@@ -39,17 +39,17 @@ namespace Base.Conf
                 LoadConfig(configName);
 
                 var node = Doc.SelectSingleNode(nodePath);
-                Debug.Assert(node != null && node.Attributes != null);
+                Debug.Assert(node?.Attributes != null);
                 var attr = node.Attributes["value"];
                 var val = attr.Value;
 
-                LogHelper.WriteLogInfo(string.Format("Value at xpath {0} read: {1}", nodePath, val));
+                LogHelper.WriteLogInfo($"Value at xpath {nodePath} read: {val}");
 
                 return val;
             }
             catch (Exception ex)
             {
-                LogHelper.WriteLogError(string.Format("Error occured on reading xpath {0}. Exception message: {1}", nodePath, ex.Message));
+                LogHelper.WriteLogError($"Error occured on reading xpath {nodePath}. Exception message: {ex.Message}");
                 return "";
             }
         }
@@ -69,7 +69,7 @@ namespace Base.Conf
             }
             catch (Exception ex)
             {
-                LogHelper.WriteLogError(string.Format("Error occured on reading xpath {0}. Exception message: {1}", nodePath, ex.Message));
+                LogHelper.WriteLogError($"Error occured on reading xpath {nodePath}. Exception message: {ex.Message}");
                 return -1;
             }
         }
@@ -89,7 +89,7 @@ namespace Base.Conf
             }
             catch (Exception ex)
             {
-                LogHelper.WriteLogError(string.Format("Error occured on reading xpath {0}. Exception message: {1}", nodePath, ex.Message));
+                LogHelper.WriteLogError($"Error occured on reading xpath {nodePath}. Exception message: {ex.Message}");
                 return false;
             }
         }

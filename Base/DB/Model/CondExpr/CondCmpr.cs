@@ -18,21 +18,19 @@ namespace Base.DB.Model.CondExpr
             if (value == null)
             {
                 if (opt == "IS" || opt == "IS NOT")
-                    Sql = string.Format("{0} {1} NULL", field, opt);
+                    Sql = $"{field} {opt} NULL";
             }
             else
             {
-                if (opt != "IS" && opt != "IS NOT")
-                {
-                    // get parameter name
-                    var pName = string.IsNullOrEmpty(paramName)
-                        ? "@p" + StaticCounter.Next
-                        : paramName;
+                if (opt == "IS" || opt == "IS NOT") return;
+                // get parameter name
+                var pName = string.IsNullOrEmpty(paramName)
+                    ? "@p" + StaticCounter.Next
+                    : paramName;
 
-                    // construct SQL and push parameter
-                    Sql = string.Format("{0} {1} {2}", field, opt, pName);
-                    DbParams.Add(new TDbParam { ParameterName = pName, Value = ConvertDbValue(value) });
-                }
+                // construct SQL and push parameter
+                Sql = $"{field} {opt} {pName}";
+                DbParams.Add(new TDbParam {ParameterName = pName, Value = ConvertDbValue(value)});
             }
         }
     }

@@ -5,9 +5,10 @@
 	</debug>
 	<db_conn>
 		<address value="127.0.0.1"/>
-		<user_name value="lis"/>
-		<password value="slis"/>
-		<default_db value="Test"/>
+		<user_name value="root"/>
+		<password value="root"/>
+		<default_db value="test"/>
+		<ssl_mode value="none"/>
 	</db_conn>
 	<system>
 		<system_name value="XXXX系统 - V 1.0" />

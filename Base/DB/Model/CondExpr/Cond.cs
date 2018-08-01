@@ -34,7 +34,7 @@ namespace Base.DB.Model.CondExpr
 
             // date & time
             if (x is DateTime)
-                return ((DateTime)x).ToString(SysConf.DateTimeFormat);
+                return ((DateTime) x).ToString(SysConf.DateTimeFormat);
 
             // string
             return x.ToString();

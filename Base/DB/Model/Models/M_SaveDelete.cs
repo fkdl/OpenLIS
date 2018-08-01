@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Base.DB.Model.Models
 {
-    public abstract partial class M<TDbConn, TDbParam>
+    public partial class M<TDbConn, TDbParam>
         where TDbConn : DbConnection, new()
         where TDbParam : DbParameter, new()
     {
@@ -19,7 +19,7 @@ namespace Base.DB.Model.Models
         protected readonly Dictionary<string, object> DataCache = new Dictionary<string, object>();
 
         /// <summary>
-        /// Set value in "TmpData".
+        /// Set value in "DataCache".
         /// </summary>
         /// <param name="field"></param>
         /// <param name="value"></param>
@@ -39,7 +39,7 @@ namespace Base.DB.Model.Models
         }
 
         /// <summary>
-        /// Insert or update data stored in "TmpData".
+        /// Insert or update data stored in "DataCache".
         /// </summary>
         /// <param name="key">Do update if "key" is specified, otherwise do insert.</param>
         /// <returns>Key of latest updated/inserted record</returns>
@@ -55,7 +55,7 @@ namespace Base.DB.Model.Models
         }
 
         /// <summary>
-        /// Fetch parameters by cached data
+        /// Fetch parameters by cached data.
         /// </summary>
         /// <returns></returns>
         private List<TDbParam> DataCacheParams()
@@ -70,14 +70,20 @@ namespace Base.DB.Model.Models
         /// Fetch INSER SQL by cached data.
         /// </summary>
         /// <returns></returns>
-        protected abstract string InsertSql();
+        protected virtual string InsertSql()
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// Ftech UPDATE SQL by cached data.
         /// </summary>
         /// <param name="key">To which key field equals.</param>
         /// <returns></returns>
-        protected abstract string UpdateSql(object key);
+        protected virtual string UpdateSql(object key)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 
@@ -88,9 +94,9 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="cond"></param>
         /// <returns></returns>
-        public int Delete(Cond<TDbParam> cond)
+        public virtual int Delete(Cond<TDbParam> cond)
         {
-            var sql = string.Format("DELETE FROM {0} WHERE {1}", TableName, cond.FetchSql());
+            var sql = $"DELETE FROM {TableName} WHERE {cond.FetchSql()}";
             LogHelper.WriteLogInfo(sql);
             return Conn<TDbConn, TDbParam>.ExecuteNonQuery(sql, cond.FetchDbParams());
         }
@@ -100,7 +106,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="keys"></param>
         /// <returns></returns>
-        public int Delete(object[] keys)
+        public virtual int Delete(object[] keys)
         {
             var cond = new CondIn<TDbParam>(KeyField, keys);
             return Delete(cond);
@@ -111,7 +117,7 @@ namespace Base.DB.Model.Models
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public int Delete(object key)
+        public virtual int Delete(object key)
         {
             var cond = new CondCmpr<TDbParam>(KeyField, "=", key);
             return Delete(cond);

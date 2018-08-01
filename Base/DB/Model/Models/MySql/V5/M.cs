@@ -1,19 +1,19 @@
-﻿using Base.Logger;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using Base.Logger;
+using MySql.Data.MySqlClient;
 
-namespace Base.DB.Model.Models.SqlServer.V2008
+namespace Base.DB.Model.Models.MySql.V5
 {
-    public class M : M<SqlConnection, SqlParameter>
+    public class M: M<MySqlConnection, MySqlParameter>
     {
         public M(string table, string keyField = "id") : base(table, keyField)
         {
 
         }
-
+        
         /// <summary>
         /// Fetch SELECT SQL by current configuration.
         /// </summary>
@@ -26,13 +26,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
             result.Append("SELECT");
             if (IsDistinct) result.Append(" DISTINCT");// if distinct
             result.Append("\n");
-            if (LimitLength > 0) // Implement LIMIT with ROW_NUMBER()
-            {
-                // if exist grouped fields, ROW_NUMBER sorts over them.
-                // otherwise, ROW_NUMBER sorts over KeyField.
-                var rowNumberOrderBy = (GroupByFields.Count > 0 ? string.Join(", ", GroupByFields) : KeyField);
-                result.Append($"ROW_NUMBER() OVER(ORDER BY {rowNumberOrderBy}) AS ROW_NUMBER, ");
-            }
+
             result.Append(ConcatSelectFields());// Fields to be selected
 
             // FROM
@@ -45,26 +39,14 @@ namespace Base.DB.Model.Models.SqlServer.V2008
             result.Append(GroupByFields.Count > 0 ? "\nGROUP BY " + string.Join(", ", GroupByFields) : "");
             // HAVING
             result.Append(HavingConditions.Count > 0 ? "\nHAVING " + string.Join(" AND ", HavingConditions) : "");
-
-            // To impletment LIMIT, wrap select SQL with another SELECT having a range constrat on ROW_NUMBER.
-            // Put ORDER BY outside this wrap.
-            if (LimitLength > 0)
-            {
-                var prefix = $"SELECT {ConcatSelectFields(FieldNameStyle.FieldNameOrAlias)} FROM(\n";
-                
-                var postfix = $"\n) AS T\nWHERE ROW_NUMBER BETWEEN {LimitOffset + 1} AND {LimitOffset + LimitLength}";
-
-                // wrap
-                result.Insert(0, prefix);
-                result.Append(postfix);
-            }
-
             // ORDER BY
             result.Append(OrderByFields.Count > 0 ? "\nORDER BY " + string.Join(", ", OrderByFields) : "");
+            // LIMIT
+            result.Append(LimitLength > 0 ? $"\nLIMIT {LimitOffset}, {LimitLength}" : "");
 
             return result.ToString();
         }
-        
+
         /// <summary>
         /// Fetch INSER SQL by cached data.
         /// </summary>
@@ -86,7 +68,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 pNames += "@p_" + k;
             }
 
-            return $"INSERT INTO {TableName} ({fields}) OUTPUT inserted.{KeyField} VALUES({pNames})";
+            return $"INSERT INTO {TableName} ({fields}) VALUES({pNames}); SELECT LAST_INSERT_ID();";
         }
 
         /// <summary>
@@ -106,7 +88,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 expr += $"{k} = {"@p_" + k}";
             }
 
-            return $"UPDATE {TableName} SET {expr} OUTPUT inserted.{KeyField}  WHERE {KeyField} = {key}";
+            return $"UPDATE {TableName} SET {expr} WHERE {KeyField} = {key}; SELECT {key}";
         }
 
         /// <summary>
@@ -145,7 +127,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
 
                     sqlCreateTable += sbField + ",\n";
                 }
-                
+
                 // table constrains
                 if (tableConstraints != null)
                 {
@@ -155,9 +137,9 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 }
 
                 sqlCreateTable = sqlCreateTable.Remove(sqlCreateTable.Length - 2, 2); // remove rest ",\n"
-                sqlCreateTable += "\n);";
+                sqlCreateTable += "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
-                Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTable);
+                Conn<MySqlConnection, MySqlParameter>.ExecuteNonQuery(sqlCreateTable);
                 LogHelper.WriteLogInfo($"Created table {tableName}.");
 
                 // Create indexes
@@ -165,7 +147,7 @@ namespace Base.DB.Model.Models.SqlServer.V2008
                 {
                     var fields = string.Join(", ", indexFields);
                     var sqlCreateTableIndex = $"CREATE INDEX {tableName}_INDEX ON {tableName}(\n{fields}\n);";
-                    Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlCreateTableIndex);
+                    Conn<MySqlConnection, MySqlParameter>.ExecuteNonQuery(sqlCreateTableIndex);
                     LogHelper.WriteLogInfo($"Created index {fields} on table {tableName}");
                 }
 
@@ -188,14 +170,12 @@ namespace Base.DB.Model.Models.SqlServer.V2008
         {
             try
             {
-                var sqlDropIfExists = string.Format(
-                        "IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('{0}')) DROP TABLE {0};",
-                        tableName);
-                Conn<SqlConnection, SqlParameter>.ExecuteNonQuery(sqlDropIfExists);
+                var sqlDropIfExists = $"DROP TABLE IF EXISTS {tableName};";
+                Conn<MySqlConnection, MySqlParameter>.ExecuteNonQuery(sqlDropIfExists);
                 LogHelper.WriteLogInfo($"Dropped table {tableName}.");
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 LogHelper.WriteLogError(
                     $"Error occured on dropping table {tableName}. Exception message: {ex.Message}");

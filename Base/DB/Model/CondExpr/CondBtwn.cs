@@ -25,9 +25,9 @@ namespace Base.DB.Model.CondExpr
                 : paramNameTo;
 
             // construct SQL and push parameters
-            Sql = string.Format("{0} BETWEEN {1} AND {2}", field, pNameFrom, pNameTo);
-            DbParams.Add(new TDbParam { ParameterName = pNameFrom, Value = fromStr });
-            DbParams.Add(new TDbParam { ParameterName = pNameTo, Value = toStr });
+            Sql = $"{field} BETWEEN {pNameFrom} AND {pNameTo}";
+            DbParams.Add(new TDbParam {ParameterName = pNameFrom, Value = fromStr});
+            DbParams.Add(new TDbParam {ParameterName = pNameTo, Value = toStr});
         }
     }
 }

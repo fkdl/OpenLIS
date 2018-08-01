@@ -15,9 +15,9 @@ namespace Base.DB.Model.CondExpr
 
             // append SQL
             if (string.IsNullOrEmpty(Sql))
-                Sql = string.Format("({0})", cSql);
+                Sql = $"({cSql})";
             else
-                Sql += string.Format(" {0} ({1})", CondJoin, cSql);
+                Sql += $" {CondJoin} ({cSql})";
 
             // push parameters
             Debug.Assert(cond != null, ""); // Never asserts
