@@ -8,9 +8,9 @@
     <hide_on_load value="false" />
   </ui>
   <model>
-    <dll_file_name value="CommLib.dll" />
-    <name_space value="CommLib" />
-    <class_name value="Au5800" />
+    <dll_file_name value="UW2000.dll" />
+    <name_space value="UW2000" />
+    <class_name value="UW2000" />
   </model>
   <oledb>
     <connection_string value="Provider=Microsoft.Jet.OLEDB.4.0;Data Source=file.mdb" />
