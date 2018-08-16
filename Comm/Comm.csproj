@@ -36,6 +36,10 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>
+    </ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -49,8 +53,68 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Class\AComm.cs" />
+    <Compile Include="Class\Comm\CachedData\AOleDbComm.cs" />
+    <Compile Include="Class\Comm\CachedData\OleDbConf.cs" />
+    <Compile Include="Class\Comm\ExportedData\ACsvComm.cs" />
+    <Compile Include="Class\Comm\ExportedData\AExcelComm.cs" />
+    <Compile Include="Class\Comm\ExportedData\APlainFileComm.cs" />
+    <Compile Include="Class\Comm\OnlineData\AEthernetComm.cs" />
+    <Compile Include="Class\Comm\OnlineData\ASerialComm.cs" />
+    <Compile Include="Conf\CommConf.cs" />
+    <Compile Include="UI\FrmMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\FrmMain.Designer.cs">
+      <DependentUpon>FrmMain.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI\MDI\CachedData\MdiOleDb.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\CachedData\MdiOleDb.Designer.cs">
+      <DependentUpon>MdiOleDb.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiCsv.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiCsv.Designer.cs">
+      <DependentUpon>MdiCsv.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiExcel.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiExcel.Designer.cs">
+      <DependentUpon>MdiExcel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiPlainFile.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\ExportedData\MdiPlainFile.Designer.cs">
+      <DependentUpon>MdiPlainFile.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\MdiCommon.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\MdiCommon.Designer.cs">
+      <DependentUpon>MdiCommon.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\OnlineData\MdiEthernet.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\OnlineData\MdiEthernet.Designer.cs">
+      <DependentUpon>MdiEthernet.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\MDI\OnlineData\MdiSerial.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\MDI\OnlineData\MdiSerial.Designer.cs">
+      <DependentUpon>MdiSerial.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="UI\FrmMain.resx">
+      <DependentUpon>FrmMain.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -61,6 +125,27 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="UI\MDI\CachedData\MdiOleDb.resx">
+      <DependentUpon>MdiOleDb.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\ExportedData\MdiCsv.resx">
+      <DependentUpon>MdiCsv.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\ExportedData\MdiExcel.resx">
+      <DependentUpon>MdiExcel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\ExportedData\MdiPlainFile.resx">
+      <DependentUpon>MdiPlainFile.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\MdiCommon.resx">
+      <DependentUpon>MdiCommon.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\OnlineData\MdiEthernet.resx">
+      <DependentUpon>MdiEthernet.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\MDI\OnlineData\MdiSerial.resx">
+      <DependentUpon>MdiSerial.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="app.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -72,6 +157,13 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Base\Base.csproj">
+      <Project>{8E894CB2-AF72-4C35-9ABD-266A9D8B4A23}</Project>
+      <Name>Base</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

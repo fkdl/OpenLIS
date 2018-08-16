@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<conf>
+  <ui>
+    <form_text value="Instrument {0}" />
+    <tray_text value="Instrument {0}" />
+    <ballon_title value="{0}" />
+    <ballon_text value="Program is running..." />
+    <hide_on_load value="false" />
+  </ui>
+  <model>
+    <dll_file_name value="CommLib.dll" />
+    <name_space value="CommLib" />
+    <class_name value="Au5800" />
+  </model>
+  <oledb>
+    <connection_string value="Provider=Microsoft.Jet.OLEDB.4.0;Data Source=file.mdb" />
+    <sql_for_search value="" />
+    <auto_upload value="False" />
+    <sql_for_mark value="" />
+    <auto_upload_interval_sec value="5" />
+  </oledb>
+</conf>

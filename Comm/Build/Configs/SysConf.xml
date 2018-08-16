@@ -3,16 +3,20 @@
 	<debug>
 		<debug_mode value="true" />
 	</debug>
+	<format>
+		<datetime value="yyyy-MM-dd HH:mm:ss" />
+		<date value="yyyy-MM-dd" />
+		<time value="HH:mm:ss" />
+	</format>
+	<system>
+		<name value="System of Someone" />
+		<version value="V 1.0" />
+	</system>
 	<db_conn>
 		<address value="127.0.0.1"/>
-		<user_name value="sa"/>
-		<password value="]X(coYt6fNC1"/>
-		<default_db value="Test"/>
+		<user_name value="root"/>
+		<password value="root"/>
+		<default_db value="test"/>
+		<ssl_mode value="none"/>
 	</db_conn>
-	<system>
-		<system_name value="XXXX系统 - V 1.0" />
-	</system>
-	<format>
-		<datetime_format value="yyyy-MM-dd HH:mm:ss" />
-	</format>
 </conf>

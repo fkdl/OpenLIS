@@ -1,19 +1,35 @@
 ﻿using System;
+using System.Threading;
 using System.Windows.Forms;
+using Comm.UI;
 
 namespace Comm
 {
-    static class Program
+    internal static class Program
     {
-        /// <summary>
-        /// 应用程序的主入口点。
-        /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form1());
+            bool created;
+
+            // ReSharper disable once ObjectCreationAsStatement
+            new Mutex(true, Application.ProductName, out created);
+
+            if (created)
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                var frmMain = new FrmMain();
+                Application.Run(frmMain);
+            }
+            else
+            {
+                MessageBox.Show(@"Instance of this program is already running.", @"Alert",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1);
+                Application.Exit();
+            }
         }
     }
 }
